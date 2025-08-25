@@ -60,7 +60,10 @@
           <div id="countdown-human" class="muted small text-center" style="margin-top:8px;">Not set</div>
         </div>
         <div class="section card" id="today-section">
-          <h2>Today</h2>
+          <div class="row" style="justify-content: space-between; align-items: center;">
+            <h2>Today</h2>
+            <span id="today-date" class="muted small">Loading date...</span>
+          </div>
           <div class="pomo" style="margin-bottom:10px;">
             <div class="ring"><div class="time" id="pomo-time">25:00</div></div>
             <div>
@@ -121,6 +124,7 @@
       </div>
     </div>
     <div class="muted small text-center" id="history-note-footer" style="margin-top:8px">Showing last 7 days including today</div>
+    <div class="muted small text-center" id="date-range-note" style="margin-top:4px; margin-bottom: 20px;"></div>
     <aside id="settings-drawer" class="drawer" aria-hidden="true">
       <header>
         <h2>Settings</h2>

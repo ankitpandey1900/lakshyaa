@@ -30,19 +30,51 @@ button.primary{background:linear-gradient(135deg,var(--green),#14b8a6);color:#0b
 button:focus-visible, .input:focus-visible {outline:2px solid color-mix(in oklab, var(--accent) 35%, transparent); outline-offset:2px}
 
 /* Pomodoro visuals */
-.pomo{display:flex;gap:14px;align-items:center}
+.pomo{display:flex;gap:14px;align-items:center;flex-direction:column;text-align:center}
 .pomo.focus{--accent:#7c3aed}
 .pomo.break{--accent:#14b8a6}
-.pomo .ring{width:110px;height:110px;border-radius:999px;display:grid;place-items:center;background:conic-gradient(var(--accent) 0deg, #253041 0deg);
-  box-shadow:inset 0 0 0 6px #0b1220;position:relative;transition:filter .3s ease, box-shadow .3s ease, transform .15s ease}
+.pomo .ring{width:140px;height:140px;border-radius:999px;display:grid;place-items:center;background:conic-gradient(var(--accent) 0deg, #253041 0deg);
+  box-shadow:inset 0 0 0 6px #0b1220;position:relative;transition:all .3s ease;}
 .pomo .ring::after{content:"";position:absolute;inset:8px;border-radius:999px;background:radial-gradient(120% 120% at 30% 30%, #0f172a 0%, #0b1220 60%, #0b1220 100%)}
-.pomo .time{position:relative;font-size:24px;font-weight:700;letter-spacing:0.5px}
-.pomo .mode{margin-top:4px;color:#cbd5e1}
+.pomo .time{position:relative;font-size:32px;font-weight:800;letter-spacing:0.5px;display:flex;align-items:center;justify-content:center;line-height:1;padding-bottom:4px;}
+.pomo .time .time-mins,
+.pomo .time .time-secs {
+  min-width: 1.5em;
+  text-align: center;
+  display: inline-block;
+}
+.pomo .time .time-sep {
+  margin: 0 2px;
+  animation: pulse 1s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.pomo .mode{margin:4px 0 0;color:#cbd5e1;font-size:1.1rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;}
+.pomo .controls{display:flex;gap:8px;margin-top:12px;}
 .pomo.running.focus .ring{box-shadow:inset 0 0 0 6px #0b1220, 0 0 24px rgba(124,58,237,.4), 0 0 64px rgba(124,58,237,.25);animation:pulseFocus 1.8s ease-in-out infinite}
 .pomo.running.break .ring{box-shadow:inset 0 0 0 6px #0b1220, 0 0 24px rgba(20,184,166,.4), 0 0 64px rgba(20,184,166,.25);animation:pulseBreak 2.2s ease-in-out infinite}
 .pomo.running .time{filter:drop-shadow(0 0 6px rgba(255,255,255,.25))}
 @keyframes pulseFocus{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
 @keyframes pulseBreak{0%{transform:scale(1)}50%{transform:scale(1.015)}100%{transform:scale(1)}}
+
+/* Date display styles */
+#today-date {
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-weight: 500;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+#date-range-note {
+  color: var(--muted);
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin-top: 4px;
+  text-align: center;
+}
 button.primary:hover{filter:brightness(1.05)}
 /* Button variants */
 button.secondary{background:#162033;border-color:#2b3750}
@@ -106,13 +138,6 @@ button:focus, .input:focus {outline:2px solid #7c3aed33; outline-offset:2px}
 /* Drawer backdrop */
 .backdrop{position:fixed;inset:0;background:rgba(2,6,23,.4);backdrop-filter:blur(2px);opacity:0;transition:opacity .2s ease;z-index:9998;pointer-events:none}
 .backdrop.show{opacity:1;pointer-events:auto}
-
-/* Pomodoro */
-.pomo{display:flex;align-items:center;gap:12px}
-.pomo .ring{width:120px;height:120px;border-radius:50%;background:conic-gradient(var(--accent) 0deg, #253041 0deg);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 8px #0b1220, 0 2px 10px rgba(0,0,0,.4)}
-.pomo .time{font-size:26px;font-weight:800}
-.pomo .controls{display:flex;gap:8px}
-.pomo .mode{font-size:12px;color:var(--muted)}
 
 /* Center the Today section */
 #today-section h2{text-align:center}

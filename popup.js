@@ -446,6 +446,42 @@ async function renderWelcome() {
   }
 }
 
+// Date utilities
+function formatDateRange() {
+  const today = new Date();
+  const weekAgo = new Date(today);
+  weekAgo.setDate(today.getDate() - 6); // 6 days ago to include today as 7th day
+  
+  const format = (d) => d.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric' 
+  });
+  
+  return `${format(weekAgo)} - ${format(today)}`;
+}
+
+function updateDateElements() {
+  // Update today's date
+  const todayEl = document.getElementById('today-date');
+  if (todayEl) {
+    todayEl.textContent = new Date().toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      month: 'long', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+  
+  // Update date range note
+  const rangeEl = document.getElementById('date-range-note');
+  if (rangeEl) {
+    rangeEl.textContent = `Showing data from ${formatDateRange()}`;
+  }
+}
+
+// Initialize dates on load
+document.addEventListener('DOMContentLoaded', updateDateElements);
+
 // Pomodoro logic
 let pomoTimer = null;
 let pomoState = { mode: 'focus', remainingSec: 25*60, running: false, focusMin: 25, breakMin: 5, autoCycle: true, currentFocusStart: null, linkedTask: '' };
@@ -462,9 +498,19 @@ function updatePomoUI() {
   const t = document.getElementById('pomo-time');
   const m = document.getElementById('pomo-mode');
   if (!t || !m) return;
+  
+  // Calculate minutes and seconds
   const mins = Math.floor(pomoState.remainingSec/60).toString().padStart(2,'0');
   const secs = (pomoState.remainingSec%60).toString().padStart(2,'0');
-  t.textContent = `${mins}:${secs}`;
+  
+  // Update the time display with separate spans for styling
+  t.innerHTML = `
+    <span class="time-mins">${mins}</span>
+    <span class="time-sep">:</span>
+    <span class="time-secs">${secs}</span>
+  `;
+  
+  // Update the mode text
   const modeText = pomoState.mode === 'focus' ? 'Focus' : 'Break';
   m.textContent = modeText;
   const ring = document.querySelector('.pomo .ring');
@@ -638,7 +684,27 @@ async function populatePomoTaskSelect(preloadedTasks) {
   } catch {}
 }
 
-async function init() { setupTabs(); setupActions(); await renderWelcome(); await renderDeadline(); await renderToday(); await renderHistory(); await renderBacklog(); await loadPomodoro(); await renderPomoLog(); await populatePomoTaskSelect(); }
+async function init() { 
+  setupTabs(); 
+  setupActions(); 
+  await renderWelcome(); 
+  await renderDeadline(); 
+  await renderToday(); 
+  await renderHistory(); 
+  await renderBacklog(); 
+  await loadPomodoro(); 
+  await renderPomoLog(); 
+  await populatePomoTaskSelect(); 
+  
+  // Initialize dates and set up auto-update
+  updateDateElements();
+  // Update date every minute (in case page is left open)
+  setInterval(updateDateElements, 60000);
+  
+  // Hide the old history note since we're showing it in the footer now
+  const oldNote = document.querySelector('.history-note');
+  if (oldNote) oldNote.style.display = 'none';
+}
 document.addEventListener('DOMContentLoaded', init);
 
 // Toast helper
