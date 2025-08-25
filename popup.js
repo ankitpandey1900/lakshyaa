@@ -208,6 +208,8 @@ async function renderToday() {
   document.getElementById('progress-text').textContent = `${formatPercent(pct)} done`;
   document.getElementById('counts-text').textContent = `${completed}/${total}`;
   document.getElementById('progress-bar').style.width = `${pct}%`;
+  // Refresh Pomodoro task select with today's tasks
+  populatePomoTaskSelect(tasks);
 }
 
 async function renderHistory() {
@@ -236,17 +238,44 @@ async function renderBacklog() {
     left.appendChild(title); left.appendChild(meta);
     const actions=document.createElement('div'); actions.className='actions';
     const toToday=document.createElement('button'); toToday.textContent='Move to Today';
-    toToday.addEventListener('click', async () => { const src=ensureArray(tasksByDate[item.date]); const [task]=src.splice(item.index,1); const today=todayIso(); tasksByDate[item.date]=src; tasksByDate[today]=ensureArray(tasksByDate[today]); tasksByDate[today].push({ title: task.title, done:false }); await writeTasksByDate(tasksByDate); await renderToday(); await renderBacklog(); await renderHistory(); });
+    toToday.addEventListener('click', async () => { const src=ensureArray(tasksByDate[item.date]); const [task]=src.splice(item.index,1); const today=todayIso(); tasksByDate[item.date]=src; tasksByDate[today]=ensureArray(tasksByDate[today]); tasksByDate[today].push({ title: task.title, done:false }); await writeTasksByDate(tasksByDate); await refreshAll(); });
     const markDone=document.createElement('button'); markDone.textContent='Mark Done';
-    markDone.addEventListener('click', async () => { const src=ensureArray(tasksByDate[item.date]); if (src[item.index]) src[item.index].done=true; await writeTasksByDate(tasksByDate); await renderToday(); await renderBacklog(); await renderHistory(); });
+    markDone.addEventListener('click', async () => { const src=ensureArray(tasksByDate[item.date]); if (src[item.index]) src[item.index].done=true; await writeTasksByDate(tasksByDate); await refreshAll(); });
     actions.appendChild(toToday); actions.appendChild(markDone);
     li.appendChild(left); li.appendChild(actions); ul.appendChild(li);
   });
 }
 
+// Batch refresh helper for smoother UI updates
+async function refreshAll(opts={}) {
+  const { today=true, backlog=true, history=true } = opts;
+  if (today) await renderToday();
+  if (backlog) await renderBacklog();
+  if (history) await renderHistory();
+}
+
 function setupTabs() {
   const tabs = Array.from(document.querySelectorAll('.tab'));
-  tabs.forEach(tab => tab.addEventListener('click', () => { tabs.forEach(t=>t.classList.remove('active')); tab.classList.add('active'); document.querySelectorAll('.tab-panel').forEach(p=>p.classList.add('hidden')); document.getElementById(tab.dataset.tab).classList.remove('hidden'); }));
+  tabs.forEach(tab => tab.addEventListener('click', () => {
+    const targetId = tab.dataset.tab;
+    const currentPanel = document.querySelector('.tab-panel:not(.hidden)');
+    const nextPanel = document.getElementById(targetId);
+    if (!nextPanel || currentPanel === nextPanel) return;
+    // Active tab state
+    tabs.forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    // Fade out current, then swap, then fade in next
+    if (currentPanel) currentPanel.classList.add('is-fading');
+    setTimeout(() => {
+      if (currentPanel) { currentPanel.classList.add('hidden'); currentPanel.classList.remove('is-fading'); }
+      nextPanel.classList.remove('hidden');
+      nextPanel.classList.add('is-fading');
+      requestAnimationFrame(() => {
+        // allow one frame for class to apply, then remove to trigger transition
+        nextPanel.classList.remove('is-fading');
+      });
+    }, 120);
+  }));
 }
 
 function setupActions() {
@@ -259,7 +288,7 @@ function setupActions() {
     await renderDeadline();
   });
   const addTaskBtn = document.getElementById('add-task');
-  if (addTaskBtn) addTaskBtn.addEventListener('click', async () => { const input=document.getElementById('task-input'); const title=(input?.value||'').trim(); if (!title) return; const date=todayIso(); const tasksByDate=await readTasksByDate(); tasksByDate[date]=ensureArray(tasksByDate[date]); tasksByDate[date].push({ title, done:false }); await writeTasksByDate(tasksByDate); if (input) input.value=''; await renderToday(); await renderBacklog(); await renderHistory(); });
+  if (addTaskBtn) addTaskBtn.addEventListener('click', async () => { const input=document.getElementById('task-input'); const title=(input?.value||'').trim(); if (!title) return; const date=todayIso(); const tasksByDate=await readTasksByDate(); tasksByDate[date]=ensureArray(tasksByDate[date]); tasksByDate[date].push({ title, done:false }); await writeTasksByDate(tasksByDate); if (input) input.value=''; await refreshAll(); });
   const taskInput = document.getElementById('task-input');
   if (taskInput) taskInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('add-task')?.click(); });
   // Quickbar: add task
@@ -274,7 +303,7 @@ function setupActions() {
     tasksByDate[date].push({ title, done:false });
     await writeTasksByDate(tasksByDate);
     if (input) input.value = '';
-    await renderToday(); await renderBacklog(); await renderHistory();
+    await refreshAll();
     showToast('Added to Today ✓');
   });
   const qbTaskInput = document.getElementById('qb-task-input');
@@ -283,13 +312,13 @@ function setupActions() {
   if (clearDoneBtn) clearDoneBtn.addEventListener('click', async () => {
     const date=todayIso(); const tasksByDate=await readTasksByDate(); const tasks=ensureArray(tasksByDate[date]);
     tasksByDate[date] = tasks.filter(t=>!t.done); await writeTasksByDate(tasksByDate);
-    await renderToday(); await renderBacklog(); await renderHistory();
+    await refreshAll();
   });
   const moveBacklogBtn = document.getElementById('move-backlog');
   if (moveBacklogBtn) moveBacklogBtn.addEventListener('click', async () => {
     const tasksByDate=await readTasksByDate(); const backlog=collectBacklog(tasksByDate); const today=todayIso(); tasksByDate[today]=ensureArray(tasksByDate[today]);
     backlog.forEach(item => { const src=ensureArray(tasksByDate[item.date]); const task=src[item.index]; if (task && !task.done) { tasksByDate[today].push({ title: task.title, done:false }); task.done=true; } });
-    await writeTasksByDate(tasksByDate); await renderToday(); await renderBacklog(); await renderHistory();
+    await writeTasksByDate(tasksByDate); await refreshAll();
   });
   const saveNameBtn = document.getElementById('save-name');
   if (saveNameBtn) saveNameBtn.addEventListener('click', async () => {
@@ -324,6 +353,7 @@ function setupActions() {
   const openBtn = document.getElementById('open-settings');
   const closeBtn = document.getElementById('close-settings');
   const drawer = document.getElementById('settings-drawer');
+  const backdrop = document.getElementById('backdrop');
   if (openBtn && closeBtn && drawer) {
     openBtn.addEventListener('click', async () => {
       // preload current values
@@ -338,8 +368,16 @@ function setupActions() {
       document.getElementById('stg-pomo-auto').checked = ps.autoCycle ?? true;
       drawer.classList.add('open');
       drawer.setAttribute('aria-hidden','false');
+      if (backdrop) { backdrop.classList.add('show'); backdrop.setAttribute('aria-hidden','false'); }
     });
-    closeBtn.addEventListener('click', () => { drawer.classList.remove('open'); drawer.setAttribute('aria-hidden','true'); });
+    const closeDrawer = () => {
+      drawer.classList.remove('open');
+      drawer.setAttribute('aria-hidden','true');
+      if (backdrop) { backdrop.classList.remove('show'); backdrop.setAttribute('aria-hidden','true'); }
+    };
+    closeBtn.addEventListener('click', closeDrawer);
+    if (backdrop) backdrop.addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer(); });
   }
 
   const saveName = document.getElementById('stg-save-name');
@@ -410,12 +448,14 @@ async function renderWelcome() {
 
 // Pomodoro logic
 let pomoTimer = null;
-let pomoState = { mode: 'focus', remainingSec: 25*60, running: false, focusMin: 25, breakMin: 5, autoCycle: true, currentFocusStart: null };
+let pomoState = { mode: 'focus', remainingSec: 25*60, running: false, focusMin: 25, breakMin: 5, autoCycle: true, currentFocusStart: null, linkedTask: '' };
 
 async function loadPomodoro() {
   const saved = await storage.get(KEY_POMO, null);
   if (saved) pomoState = { ...pomoState, ...saved };
   updatePomoUI();
+  // Try to reflect linked task into selector after load
+  populatePomoTaskSelect();
 }
 
 function updatePomoUI() {
@@ -433,11 +473,20 @@ function updatePomoUI() {
     const progress = 360 * (1 - (pomoState.remainingSec/total));
     ring.style.background = `conic-gradient(var(--accent) ${progress}deg, #253041 0deg)`;
   }
+  applyPomoClasses();
   // Update quickbar mirrored timer (if present)
   const qt = document.getElementById('qb-pomo-time');
   const qm = document.getElementById('qb-pomo-mode');
   if (qt) qt.textContent = `${mins}:${secs}`;
   if (qm) qm.textContent = modeText;
+}
+
+function applyPomoClasses() {
+  const container = document.querySelector('.pomo');
+  if (!container) return;
+  container.classList.toggle('running', !!pomoState.running);
+  container.classList.toggle('focus', pomoState.mode === 'focus');
+  container.classList.toggle('break', pomoState.mode === 'break');
 }
 
 function tickPomodoro() {
@@ -469,15 +518,23 @@ function startPomodoro() {
   pomoState.running = true;
   pomoTimer = setInterval(tickPomodoro, 1000);
   // Start a focus session timer if entering/being in focus mode
+  // Capture currently selected task to link this session
+  const sel = document.getElementById('pomo-task-select');
+  if (sel) {
+    const value = sel.value || '';
+    pomoState.linkedTask = value;
+  }
   if (pomoState.mode === 'focus' && !pomoState.currentFocusStart) {
     logStartFocusSession();
   }
   storage.set(KEY_POMO, pomoState);
+  updatePomoUI();
 }
 function pausePomodoro() {
   pomoState.running = false;
   if (pomoTimer) clearInterval(pomoTimer);
   storage.set(KEY_POMO, pomoState);
+  updatePomoUI();
 }
 function resetPomodoro() {
   pomoState.running = false;
@@ -505,7 +562,7 @@ async function logEndFocusSession(reason) {
   const date = todayIso();
   const sessions = await readPomoSessions();
   sessions[date] = ensureArray(sessions[date]);
-  sessions[date].push({ start: startMs, end: endMs, durationSec, reason });
+  sessions[date].push({ start: startMs, end: endMs, durationSec, reason, taskTitle: pomoState.linkedTask || null });
   await writePomoSessions(sessions);
   pomoState.currentFocusStart = null;
   await storage.set(KEY_POMO, pomoState);
@@ -551,7 +608,8 @@ async function renderPomoLog() {
       title.textContent = `${fmtTimeHM(s.start)} - ${fmtTimeHM(s.end)}`;
       const meta = document.createElement('span');
       meta.className = 'muted small';
-      meta.textContent = ` (${fmtDurHMS(s.durationSec)})`;
+      const taskStr = s.taskTitle ? ` • Task: ${s.taskTitle}` : '';
+      meta.textContent = ` (${fmtDurHMS(s.durationSec)})${taskStr}`;
       left.appendChild(title);
       left.appendChild(meta);
       li.appendChild(left);
@@ -559,7 +617,28 @@ async function renderPomoLog() {
     });
 }
 
-async function init() { setupTabs(); setupActions(); await renderWelcome(); await renderDeadline(); await renderToday(); await renderHistory(); await renderBacklog(); await loadPomodoro(); await renderPomoLog(); }
+// Populate the Pomodoro task selector with today's tasks
+async function populatePomoTaskSelect(preloadedTasks) {
+  try {
+    const sel = document.getElementById('pomo-task-select');
+    if (!sel) return;
+    const tasks = preloadedTasks ?? ensureArray((await readTasksByDate())[todayIso()]);
+    sel.innerHTML = '';
+    const none = document.createElement('option');
+    none.value = '';
+    none.textContent = '— None —';
+    sel.appendChild(none);
+    tasks.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.title;
+      opt.textContent = t.title;
+      sel.appendChild(opt);
+    });
+    if (pomoState.linkedTask) sel.value = pomoState.linkedTask;
+  } catch {}
+}
+
+async function init() { setupTabs(); setupActions(); await renderWelcome(); await renderDeadline(); await renderToday(); await renderHistory(); await renderBacklog(); await loadPomodoro(); await renderPomoLog(); await populatePomoTaskSelect(); }
 document.addEventListener('DOMContentLoaded', init);
 
 // Toast helper
@@ -572,5 +651,20 @@ function showToast(message) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=> el.classList.remove('show'), 1200);
 }
+
+
+// Finalize in-flight focus session if page is hidden/closed
+function finalizeInFlightSession() {
+  try {
+    if (pomoState && pomoState.mode === 'focus' && pomoState.currentFocusStart) {
+      // Best-effort; no await to avoid blocking unload
+      logEndFocusSession('abandoned');
+    }
+  } catch {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') finalizeInFlightSession();
+});
+window.addEventListener('beforeunload', finalizeInFlightSession);
 
 

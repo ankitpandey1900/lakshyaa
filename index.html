@@ -6,18 +6,7 @@
   <title>Lakshya — Deadline & Daily Tasks</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="logo.png" type="image/png" />
-  <style>
-    body{background:#0b1220;color:#e6edf3;margin:0}
-    .page{max-width:min(1440px,100%);margin:32px auto;padding:0 24px}
-    .grid{display:grid;grid-template-columns:1fr;gap:16px}
-    @media (min-width:1200px){
-      .grid{grid-template-columns:1.5fr 1fr}
-    }
-    @media (min-width:1600px){
-      .page{max-width:min(1600px,100%)}
-      .grid{grid-template-columns:2fr 1fr}
-    }
-  </style>
+  <meta name="theme-color" content="#0b1220" />
   <script defer src="popup.js"></script>
 </head>
 <body class="big">
@@ -80,6 +69,10 @@
                 <button id="pomo-start" class="primary">Start</button>
                 <button id="pomo-pause">Pause</button>
                 <button id="pomo-reset">Reset</button>
+              </div>
+              <div class="row small" style="margin-top:6px; align-items:center; gap:6px;">
+                <label for="pomo-task-select" class="muted">Link to task:</label>
+                <select id="pomo-task-select" class="input" style="min-width:180px;"></select>
               </div>
             </div>
           </div>
@@ -166,5 +159,6 @@
     </aside>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="backdrop" class="backdrop" aria-hidden="true"></div>
 </body>
 </html>

@@ -23,10 +23,17 @@ function scheduleDailySummary(timeStr) {
   chrome.alarms.create('daily-summary', { when: when.getTime(), periodInMinutes: 24 * 60 });
 }
 
+function parseIsoLocal(iso) {
+  if (!iso) return null;
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
 function scheduleDeadlineReminder(deadlineIso) {
   chrome.alarms.clear('deadline-reminder');
   if (!deadlineIso) return;
-  const when = new Date(deadlineIso).getTime();
+  const when = (parseIsoLocal(deadlineIso) || new Date(deadlineIso)).getTime();
   if (when > Date.now()) chrome.alarms.create('deadline-reminder', { when });
 }
 
@@ -49,12 +56,12 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   const { [KEY_USERNAME]: name, [KEY_DEADLINE]: deadlineIso } = await getStorage([KEY_USERNAME, KEY_DEADLINE]);
   if (alarm.name === 'daily-summary') {
     chrome.notifications.create({
-      type: 'basic', iconUrl: 'icon.png', title: 'Daily Summary', message: `Let's Achieve More${name ? ', ' + name : ''}! Open a new tab to plan today.`, priority: 1
+      type: 'basic', iconUrl: 'logo.png', title: 'Daily Summary', message: `Let's Achieve More${name ? ', ' + name : ''}! Open a new tab to plan today.`, priority: 1
     });
   }
   if (alarm.name === 'deadline-reminder' && deadlineIso) {
     chrome.notifications.create({
-      type: 'basic', iconUrl: 'icon.png', title: 'Deadline reached', message: 'Your deadline is now. Review your goals.', priority: 2
+      type: 'basic', iconUrl: 'logo.png', title: 'Deadline reached', message: 'Your deadline is now. Review your goals.', priority: 2
     });
   }
 });
