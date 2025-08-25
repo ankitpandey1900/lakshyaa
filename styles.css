@@ -1,8 +1,8 @@
-  .quickbar .logo{width:24px;height:24px}
+  .quickbar .logo{width:64px;height:64px}
 /* Basic external styles */
 :root{
   /* Colors */
-  --green:#22c55e;--text:#e6edf3;--muted:#9aa4b2;--border:#2a2f3a;--bg:#0b1220;--panel:#111827;--panel2:#0f172a;--accent:#7c3aed;
+  --green:#22c55e;--text:#e6edf3;--muted:#b3bdc9;--border:#2a2f3a;--bg:#0b1220;--panel:#111827;--panel2:#0f172a;--accent:#7c3aed;
   /* Typography scale */
   --fs-xs:12px; --fs-sm:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:22px; --fs-xxl:26px;
   /* Spacing scale */
@@ -19,7 +19,7 @@ html{scroll-behavior:smooth}
 @media (min-width:1600px){ .page{max-width:min(1600px,100%)} .grid{grid-template-columns:2fr 1fr} }
 .container{padding:var(--space-12)}
 .section{margin-bottom:16px}
-.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-12);padding:12px;box-shadow:0 2px 10px rgba(0,0,0,.25);transition:border-color .2s ease, box-shadow .2s ease, transform .1s ease}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-12);padding:10px 12px;box-shadow:0 2px 10px rgba(0,0,0,.25);transition:border-color .2s ease, box-shadow .2s ease, transform .1s ease}
 .card:hover{border-color:#334155;box-shadow:0 6px 24px rgba(0,0,0,.35)}
 .row{display:flex;gap:8px;align-items:center}
 .input{padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius-8);background:#0b1220;color:var(--text)}
@@ -35,7 +35,7 @@ button:focus-visible, .input:focus-visible {outline:2px solid color-mix(in oklab
 .pomo.break{--accent:#14b8a6}
 .pomo .ring{width:110px;height:110px;border-radius:999px;display:grid;place-items:center;background:conic-gradient(var(--accent) 0deg, #253041 0deg);
   box-shadow:inset 0 0 0 6px #0b1220;position:relative;transition:filter .3s ease, box-shadow .3s ease, transform .15s ease}
-.pomo .ring::after{content:"";position:absolute;inset:8px;border-radius:999px;background:#0b1220}
+.pomo .ring::after{content:"";position:absolute;inset:8px;border-radius:999px;background:radial-gradient(120% 120% at 30% 30%, #0f172a 0%, #0b1220 60%, #0b1220 100%)}
 .pomo .time{position:relative;font-size:24px;font-weight:700;letter-spacing:0.5px}
 .pomo .mode{margin-top:4px;color:#cbd5e1}
 .pomo.running.focus .ring{box-shadow:inset 0 0 0 6px #0b1220, 0 0 24px rgba(124,58,237,.4), 0 0 64px rgba(124,58,237,.25);animation:pulseFocus 1.8s ease-in-out infinite}
@@ -66,7 +66,7 @@ li{display:flex;align-items:center;justify-content:space-between;gap:8px;padding
 .small{font-size:var(--fs-xs)}
 .hidden{display:none}
 /* Tab panel motion */
-.tab-panel{opacity:1;transition:opacity .18s ease}
+.tab-panel{opacity:1;transition:opacity .2s ease}
 .tab-panel.is-fading{opacity:0}
 /* Helpers */
 .text-center{text-align:center}
@@ -89,7 +89,7 @@ button:focus, .input:focus {outline:2px solid #7c3aed33; outline-offset:2px}
 /* Countdown segments */
 .countdown{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
 .countdown .segment{background:#0b1220;border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
-.countdown .num{font-size:22px;font-weight:800;color:#e5e7eb}
+.countdown .num{font-size:22px;font-weight:800;color:#f1f5f9}
 .countdown .label{font-size:11px;color:var(--muted)}
 
 /* Settings drawer */
@@ -160,9 +160,9 @@ body.big .container, body.big .page { max-width: 100%; }
 
 /* Sticky quick bar */
 .quickbar{position:sticky;top:0;z-index:5000;background:rgba(11,18,32,.75);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
-.quickbar .inner{display:flex;align-items:center;gap:8px;padding:6px 10px;max-width:960px;margin:0 auto}
-.quickbar .logo{width:28px;height:28px;display:block;border-radius:4px}
-.quickbar .qb-time{font-variant-numeric:tabular-nums;font-weight:800;letter-spacing:0.3px;min-width:58px;text-align:center}
+.quickbar .inner{display:flex;align-items:center;gap:14px;padding:8px 12px;max-width:960px;margin:0 auto}
+.quickbar .logo{width:64px;height:64px;display:block;border-radius:10px}
+.quickbar .qb-time{font-variant-numeric:tabular-nums;font-weight:800;letter-spacing:0.3px;min-width:76px;text-align:center}
 .quickbar .qb-mode{min-width:48px;text-align:center}
 .quickbar .inner .input{padding:6px 8px}
 .quickbar .inner .spacer{flex:1}
@@ -171,7 +171,7 @@ body.big .container, body.big .page { max-width: 100%; }
 @media (max-width: 640px){
   .page{padding:0 12px}
   .card{padding:10px}
-  .quickbar .inner{flex-wrap:wrap;gap:6px}
+  .quickbar .inner{flex-wrap:wrap;gap:8px}
   .quickbar .inner .input{flex:1;min-width:160px}
   .quickbar button{padding:6px 8px}
   /* Ensure 'big' mode doesn't overscale on phones */
@@ -181,6 +181,7 @@ body.big .container, body.big .page { max-width: 100%; }
   body.big .pomo .time { font-size: 26px; }
   .pomo{flex-direction:column}
   #today-section .row{flex-wrap:wrap}
+  .quickbar .logo{width:44px;height:44px;border-radius:10px}
 }
 
 /* Custom scrollbars (Chromium/WebKit) */

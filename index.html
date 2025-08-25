@@ -100,14 +100,27 @@
           </div>
           <div id="history" class="tab-panel">
             <ul id="history-list"></ul>
-            <div class="muted small text-center history-note">Showing last 7 days including today</div>
           </div>
           <div id="backlog" class="tab-panel hidden">
             <ul id="backlog-list"></ul>
           </div>
         </div>
+        <!-- New right column widgets -->
+        <div class="section card" id="quick-stats-card">
+          <h2>Quick Stats</h2>
+          <ul id="quick-stats" class="stats"></ul>
+        </div>
+        <div class="section card" id="streak-card">
+          <h2>Focus Streak</h2>
+          <div id="streak" class="streak"></div>
+        </div>
+        <div class="section card" id="nextup-card">
+          <h2>Next Up</h2>
+          <ul id="nextup-list"></ul>
+        </div>
       </div>
     </div>
+    <div class="muted small text-center" id="history-note-footer" style="margin-top:8px">Showing last 7 days including today</div>
     <aside id="settings-drawer" class="drawer" aria-hidden="true">
       <header>
         <h2>Settings</h2>
