@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Lakshya",
+  "description": "Visualize deadline countdown, daily progress, weekly history, and pending backlog—all in one view.",
+  "version": "1.0.0",
+  "action": {
+    "default_title": "Lakshya",
+    "default_icon": {
+      "16": "logo.png",
+      "24": "logo.png",
+      "32": "logo.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "icons": {
+    "16": "logo.png",
+    "32": "logo.png",
+    "48": "logo.png",
+    "128": "logo.png"
+  },
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications"
+  ]
+}
+

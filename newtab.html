@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deadline & Daily Tasks — New Tab</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="logo.png" type="image/png" />
+  <style>
+    body{background:#0b1220;color:#e6edf3;margin:0}
+    .page{max-width:min(1440px,100%);margin:32px auto;padding:0 24px}
+    .grid{display:grid;grid-template-columns:1fr;gap:16px}
+    @media (min-width:1200px){
+      .grid{grid-template-columns:1.5fr 1fr}
+    }
+    @media (min-width:1600px){
+      .page{max-width:min(1600px,100%)}
+      .grid{grid-template-columns:2fr 1fr}
+    }
+  </style>
+  <script defer src="popup.js"></script>
+</head>
+<body class="big">
+  <div class="quickbar">
+    <div class="inner">
+      <img src="logo.png" alt="Lakshya" class="logo" />
+      <input class="input" type="text" id="qb-task-input" placeholder="Quick add a task" />
+      <button id="qb-add-task" class="secondary">Add</button>
+      <div class="spacer"></div>
+      <span id="qb-pomo-time" class="qb-time">25:00</span>
+      <span id="qb-pomo-mode" class="qb-mode muted small">Focus</span>
+      <button id="qb-pomo-start" class="primary">Start</button>
+      <button id="qb-pomo-pause">Pause</button>
+      <button id="qb-pomo-reset">Reset</button>
+      <button id="open-settings" class="icon-btn" title="Settings">Settings</button>
+    </div>
+  </div>
+  <div class="page">
+    <div class="grid">
+      <div>
+        <div class="row" style="justify-content:flex-end;padding:8px 0 0;">
+        </div>
+        <div class="section card" id="welcome-section">
+          <div class="row" style="margin-top:6px;">
+            <input class="input" type="text" id="name-input" placeholder="Enter your name once"/>
+            <button class="primary" id="save-name">Save</button>
+          </div>
+          <div id="welcome-text" class="muted small text-center xxl" style="margin-top:8px;">Welcome. Let’s Achieve More!</div>
+          <div id="welcome-quote" class="muted small text-center xxl" style="margin-top:6px;">Thoda waqt lagega, par kaam hoga, Mehnat ka fal, ek din shaandaar hoga!</div>
+        </div>
+        <div class="section card" id="deadline-section">
+          <div class="row text-center" style="justify-content:center;align-items:center;flex-direction:column;gap:4px;">
+            <h2>Deadline</h2>
+            <div class="muted small bigger" id="deadline-status">Not set</div>
+          </div>
+          <div id="deadline-note" class="muted small text-center bigger" style="margin-top:2px;">What's the goal? e.g., Become a full stack developer</div>
+          <div class="row" style="margin-top:6px;">
+            <input class="input" type="text" id="deadline-note-input" placeholder="What's the goal? e.g., Become a full stack developer"/>
+          </div>
+          <div class="row" style="margin-top:6px;">
+            <input class="input" type="date" id="deadline-input" />
+            <button class="primary" id="save-deadline">Save</button>
+          </div>
+          <div class="countdown" id="countdown" aria-live="polite">
+            <div class="segment"><div class="num" id="cd-years">0</div><div class="label">Years</div></div>
+            <div class="segment"><div class="num" id="cd-months">0</div><div class="label">Months</div></div>
+            <div class="segment"><div class="num" id="cd-days">0</div><div class="label">Days</div></div>
+            <div class="segment"><div class="num" id="cd-hours">0</div><div class="label">Hours</div></div>
+            <div class="segment"><div class="num" id="cd-mins">0</div><div class="label">Mins</div></div>
+            <div class="segment"><div class="num" id="cd-secs">0</div><div class="label">Secs</div></div>
+          </div>
+          <div id="countdown-human" class="muted small text-center" style="margin-top:8px;">Not set</div>
+        </div>
+        <div class="section card" id="today-section">
+          <h2>Today</h2>
+          <div class="pomo" style="margin-bottom:10px;">
+            <div class="ring"><div class="time" id="pomo-time">25:00</div></div>
+            <div>
+              <div class="mode" id="pomo-mode">Focus</div>
+              <div class="controls">
+                <button id="pomo-start" class="primary">Start</button>
+                <button id="pomo-pause">Pause</button>
+                <button id="pomo-reset">Reset</button>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <input class="input" type="text" id="task-input" placeholder="Add a task for today"/>
+            <button id="add-task">Add</button>
+          </div>
+          <div class="row small" style="justify-content: space-between; margin-top:8px;">
+            <span id="progress-text">0% done</span>
+            <span id="counts-text" class="muted">0/0</span>
+          </div>
+          <div class="progress" style="margin-top:6px;">
+            <div id="progress-bar"></div>
+          </div>
+          <ul id="today-list"></ul>
+        </div>
+      </div>
+      <div>
+        <div class="section card">
+          <div class="tabs">
+            <button class="tab active" data-tab="history">Past 7 Days</button>
+            <button class="tab" data-tab="backlog">Backlog</button>
+          </div>
+          <div id="history" class="tab-panel">
+            <ul id="history-list"></ul>
+            <div class="muted small text-center history-note">Showing last 7 days including today</div>
+          </div>
+          <div id="backlog" class="tab-panel hidden">
+            <ul id="backlog-list"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside id="settings-drawer" class="drawer" aria-hidden="true">
+      <header>
+        <h2>Settings</h2>
+        <button id="close-settings" class="icon-btn">Close</button>
+      </header>
+      <div class="section">
+        <h3 style="margin:0 0 6px">Profile</h3>
+        <div class="row">
+          <input class="input" type="text" id="stg-name" placeholder="Your name"/>
+          <button class="primary" id="stg-save-name">Save</button>
+        </div>
+      </div>
+      <div class="section">
+        <h3 style="margin:0 0 6px">Deadline</h3>
+        <input class="input" type="text" id="stg-goal" placeholder="Goal description" style="margin-bottom:6px"/>
+        <div class="row">
+          <input class="input" type="date" id="stg-deadline"/>
+          <button class="primary" id="stg-save-deadline">Save</button>
+        </div>
+      </div>
+      <div class="section">
+        <h3 style="margin:0 0 6px">Pomodoro</h3>
+        <div class="row" style="margin-bottom:6px;">
+          <label class="muted small" style="min-width:110px">Focus (min)</label>
+          <input class="input" type="number" id="stg-pomo-focus" min="1" value="25"/>
+        </div>
+        <div class="row" style="margin-bottom:6px;">
+          <label class="muted small" style="min-width:110px">Break (min)</label>
+          <input class="input" type="number" id="stg-pomo-break" min="1" value="5"/>
+        </div>
+        <div class="row" style="margin-bottom:6px;">
+          <label class="muted small" style="min-width:110px">Auto-cycle</label>
+          <input type="checkbox" id="stg-pomo-auto" checked />
+          <button class="primary" id="stg-save-pomo">Save</button>
+        </div>
+      </div>
+      <div class="section">
+        <h3 style="margin:0 0 6px">Notifications</h3>
+        <div class="row" style="margin-bottom:6px;">
+          <label class="muted small" for="stg-daily-time" style="min-width:110px">Daily summary at</label>
+          <input class="input" type="time" id="stg-daily-time" />
+        </div>
+        <div class="row">
+          <label class="muted small" for="stg-deadline-rem" style="min-width:110px">Deadline alert</label>
+          <input type="checkbox" id="stg-deadline-rem" />
+          <button class="primary" id="stg-save-notif">Save</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>
+
+
