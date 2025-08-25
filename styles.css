@@ -138,3 +138,25 @@ body.big .container, body.big .page { max-width: 100%; }
 .quickbar .inner .input{padding:6px 8px}
 .quickbar .inner .spacer{flex:1}
 
+/* Responsive: small screens */
+@media (max-width: 640px){
+  .page{padding:0 12px}
+  .card{padding:10px}
+  .quickbar .inner{flex-wrap:wrap;gap:6px}
+  .quickbar .inner .input{flex:1;min-width:160px}
+  .quickbar button{padding:6px 8px}
+  /* Ensure 'big' mode doesn't overscale on phones */
+  body.big { font-size: 15px; }
+  body.big h2 { font-size: 20px; }
+  body.big .pomo .ring { width: 140px !important; height: 140px !important; }
+  body.big .pomo .time { font-size: 26px; }
+  .pomo{flex-direction:column}
+  #today-section .row{flex-wrap:wrap}
+}
+
+/* Better tap targets on touch */
+@media (pointer: coarse){
+  button{padding:10px 12px}
+  li{padding:10px 0}
+}
+

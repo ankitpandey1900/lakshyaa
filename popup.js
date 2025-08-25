@@ -20,8 +20,23 @@ const KEY_DEADLINE_NOTE = 'deadlineNote';
 const KEY_NOTIF_DAILY_TIME = 'notifDailyTime';
 const KEY_NOTIF_DEADLINE_REMINDER = 'notifDeadlineEnabled';
 const KEY_POMO = 'pomodoroSettings';
+const KEY_POMO_SESSIONS = 'pomoSessionsByDate';
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+// Date helpers that use LOCAL dates (avoid UTC offset issues)
+const toIsoLocal = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+const parseIsoLocal = (iso) => {
+  if (!iso) return null;
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  // Use local-time constructor so the date is local midnight
+  return new Date(y, m - 1, d);
+};
+const todayIso = () => toIsoLocal(new Date());
 const formatPercent = (num) => `${Math.round(num)}%`;
 function formatDateDMY(iso) {
   if (!iso) return '';
@@ -33,7 +48,7 @@ function formatDateDMY(iso) {
 function daysUntil(dateIso) {
   if (!dateIso) return '—';
   const start = new Date(new Date().toDateString());
-  const end = new Date(dateIso);
+  const end = parseIsoLocal(dateIso) || new Date(dateIso);
   const diffMs = end - start;
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   return diffDays >= 0 ? diffDays : 0;
@@ -42,13 +57,22 @@ function daysUntil(dateIso) {
 function getLastNDates(n) {
   const dates = [];
   const base = new Date();
-  for (let i = 0; i < n; i++) { const d = new Date(base); d.setDate(base.getDate() - i); dates.push(d.toISOString().slice(0,10)); }
+  base.setHours(0,0,0,0); // normalize to local midnight
+  for (let i = 0; i < n; i++) {
+    const d = new Date(base);
+    d.setDate(base.getDate() - i);
+    dates.push(toIsoLocal(d));
+  }
   return dates;
 }
 
 async function readTasksByDate() { return (await storage.get(KEY_TASKS_BY_DATE, {})) || {}; }
 async function writeTasksByDate(tasksByDate) { await storage.set(KEY_TASKS_BY_DATE, tasksByDate); }
 function ensureArray(value) { return Array.isArray(value) ? value : []; }
+
+// Pomodoro sessions storage
+async function readPomoSessions() { return (await storage.get(KEY_POMO_SESSIONS, {})) || {}; }
+async function writePomoSessions(s) { await storage.set(KEY_POMO_SESSIONS, s); }
 
 let countdownTimer = null;
 
@@ -94,7 +118,7 @@ function updateCountdown(deadlineIso) {
   }
   // Show friendly status e.g., "Due on 30/09/2025 (35 days left)"
   const startOfToday = new Date(new Date().toDateString());
-  const endDate = new Date(deadlineIso);
+  const endDate = parseIsoLocal(deadlineIso) || new Date(deadlineIso);
   const msPerDay = 1000 * 60 * 60 * 24;
   const rawDays = Math.ceil((endDate - startOfToday) / msPerDay); // can be negative when overdue
   // Update status text and emphasis classes
@@ -109,7 +133,7 @@ function updateCountdown(deadlineIso) {
   }
   const tick = () => {
     const now = new Date();
-    const end = new Date(deadlineIso);
+    const end = parseIsoLocal(deadlineIso) || new Date(deadlineIso);
     const diff = diffCalendarUnits(now, end);
     y.textContent = String(diff.years);
     mo.textContent = String(diff.months);
@@ -386,7 +410,7 @@ async function renderWelcome() {
 
 // Pomodoro logic
 let pomoTimer = null;
-let pomoState = { mode: 'focus', remainingSec: 25*60, running: false, focusMin: 25, breakMin: 5, autoCycle: true };
+let pomoState = { mode: 'focus', remainingSec: 25*60, running: false, focusMin: 25, breakMin: 5, autoCycle: true, currentFocusStart: null };
 
 async function loadPomodoro() {
   const saved = await storage.get(KEY_POMO, null);
@@ -424,11 +448,15 @@ function tickPomodoro() {
   } else {
     // Switch mode
     if (pomoState.mode === 'focus') {
+      // Focus session finished
+      logEndFocusSession('completed');
       pomoState.mode = 'break';
       pomoState.remainingSec = pomoState.breakMin*60;
     } else {
       pomoState.mode = 'focus';
       pomoState.remainingSec = pomoState.focusMin*60;
+      // New focus session starts immediately if running
+      if (pomoState.running) logStartFocusSession();
     }
     storage.set(KEY_POMO, pomoState);
     updatePomoUI();
@@ -440,6 +468,10 @@ function startPomodoro() {
   if (pomoTimer) clearInterval(pomoTimer);
   pomoState.running = true;
   pomoTimer = setInterval(tickPomodoro, 1000);
+  // Start a focus session timer if entering/being in focus mode
+  if (pomoState.mode === 'focus' && !pomoState.currentFocusStart) {
+    logStartFocusSession();
+  }
   storage.set(KEY_POMO, pomoState);
 }
 function pausePomodoro() {
@@ -450,12 +482,84 @@ function pausePomodoro() {
 function resetPomodoro() {
   pomoState.running = false;
   if (pomoTimer) clearInterval(pomoTimer);
+  // If resetting during an active focus session, end it early
+  if (pomoState.mode === 'focus' && pomoState.currentFocusStart) {
+    logEndFocusSession('reset');
+  }
   pomoState.remainingSec = (pomoState.mode==='focus'?pomoState.focusMin: pomoState.breakMin)*60;
   storage.set(KEY_POMO, pomoState);
   updatePomoUI();
 }
 
-async function init() { setupTabs(); setupActions(); await renderWelcome(); await renderDeadline(); await renderToday(); await renderHistory(); await renderBacklog(); await loadPomodoro(); }
+// === Pomodoro session logging ===
+function logStartFocusSession() {
+  pomoState.currentFocusStart = Date.now();
+  storage.set(KEY_POMO, pomoState);
+}
+
+async function logEndFocusSession(reason) {
+  if (!pomoState.currentFocusStart) return;
+  const startMs = pomoState.currentFocusStart;
+  const endMs = Date.now();
+  const durationSec = Math.max(1, Math.round((endMs - startMs) / 1000));
+  const date = todayIso();
+  const sessions = await readPomoSessions();
+  sessions[date] = ensureArray(sessions[date]);
+  sessions[date].push({ start: startMs, end: endMs, durationSec, reason });
+  await writePomoSessions(sessions);
+  pomoState.currentFocusStart = null;
+  await storage.set(KEY_POMO, pomoState);
+  renderPomoLog();
+}
+
+function fmtTimeHM(ms) {
+  const d = new Date(ms);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+function fmtDurHMS(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+async function renderPomoLog() {
+  const sessionsByDate = await readPomoSessions();
+  const today = todayIso();
+  const list = ensureArray(sessionsByDate[today]);
+  const ul = document.getElementById('pomo-log');
+  const summary = document.getElementById('pomo-summary');
+  if (!ul || !summary) return;
+  ul.innerHTML = '';
+  let total = 0;
+  list.forEach((s) => { total += s.durationSec; });
+  const totalH = Math.floor(total / 3600);
+  const totalM = Math.floor((total % 3600) / 60);
+  const totalStr = total > 0 ? `${totalH}h ${totalM}m` : '0m';
+  summary.textContent = `Today: ${list.length} session${list.length!==1?'s':''}, total ${totalStr}`;
+  list
+    .slice()
+    .sort((a,b)=>a.start-b.start)
+    .forEach(s => {
+      const li = document.createElement('li');
+      const left = document.createElement('div');
+      left.className = 'row';
+      const title = document.createElement('span');
+      title.className = 'task-title';
+      title.textContent = `${fmtTimeHM(s.start)} - ${fmtTimeHM(s.end)}`;
+      const meta = document.createElement('span');
+      meta.className = 'muted small';
+      meta.textContent = ` (${fmtDurHMS(s.durationSec)})`;
+      left.appendChild(title);
+      left.appendChild(meta);
+      li.appendChild(left);
+      ul.appendChild(li);
+    });
+}
+
+async function init() { setupTabs(); setupActions(); await renderWelcome(); await renderDeadline(); await renderToday(); await renderHistory(); await renderBacklog(); await loadPomodoro(); await renderPomoLog(); }
 document.addEventListener('DOMContentLoaded', init);
 
 // Toast helper
