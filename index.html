@@ -22,6 +22,10 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="logo.png" type="image/png" />
   <meta name="theme-color" content="#0b1220" />
+  
+  <!-- Accessibility improvements -->
+  <meta name="color-scheme" content="dark light" />
+  
   <script defer src="popup.js"></script>
   <script defer src="streaks.js"></script>
   <script defer src="smart-suggestions.js"></script>
@@ -31,6 +35,8 @@
   <script defer src="daily-journal.js"></script>
   <script defer src="export-backup.js"></script>
   <script defer src="theme-customization.js"></script>
+  <script defer src="mood-tracker.js"></script>
+  <script defer src="achievement-system.js"></script>
 </head>
 <body class="big">
   <div id="analytics-container"></div>
@@ -173,8 +179,6 @@
         </div>
       </div>
     </div>
-    <div class="muted small text-center" id="history-note-footer" style="margin-top:8px">Showing last 7 days including today</div>
-    <div class="muted small text-center" id="date-range-note" style="margin-top:4px; margin-bottom: 20px;"></div>
     <aside id="settings-drawer" class="drawer" aria-hidden="true">
       <header>
         <h2>Settings</h2>

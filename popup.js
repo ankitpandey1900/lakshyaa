@@ -685,104 +685,178 @@ async function populatePomoTaskSelect(preloadedTasks) {
   } catch {}
 }
 
-async function init() { 
-  setupTabs(); 
-  setupActions(); 
-  await renderWelcome(); 
-  await renderDeadline(); 
-  await renderToday(); 
-  await renderHistory(); 
-  await renderBacklog(); 
-  await loadPomodoro(); 
-  await renderPomoLog(); 
-  await populatePomoTaskSelect(); 
-  
-  // Initialize dates and set up auto-update
-  updateDateElements();
-  // Update date every minute (in case page is left open)
-  setInterval(updateDateElements, 60000);
-  
-  // Hide the old history note since we're showing it in the footer now
-  const oldNote = document.querySelector('.history-note');
-  if (oldNote) oldNote.style.display = 'none';
-  
-  // Initialize new features
-  let streakManager, smartSuggestions, miniGoals, dailyJournal, exportBackup, themeCustomization;
-
-  // Initialize existing features
+async function init() {
   await loadUserData();
   await loadDeadline();
   await loadTasks();
   await loadPomoSettings();
-  updateCountdown();
   updateTodayDate();
   updatePomoTaskSelect();
   loadPomoSessions();
   updatePomoSummary();
   bindEvents();
+  setupActions();
   
-  // Initialize new features
+  // Initialize all feature modules
+  // Initialize streaks
   if (typeof StreakManager !== 'undefined') {
-    streakManager = new StreakManager(storage);
+    window.streakManager = new StreakManager(storage);
     await streakManager.initializeStreaks();
   }
   
+  // Initialize smart suggestions
   if (typeof SmartSuggestions !== 'undefined') {
-    smartSuggestions = new SmartSuggestions(storage);
+    window.smartSuggestions = new SmartSuggestions(storage);
     await smartSuggestions.initializeSuggestions();
   }
   
   // Initialize focus mode
-  if (typeof focusMode !== 'undefined') {
-    focusMode.init();
+  if (typeof FocusMode !== 'undefined') {
+    window.focusMode = new FocusMode(storage);
+    focusMode.initializeFocusMode();
   }
   
   // Initialize mini goals
   if (typeof MiniGoals !== 'undefined') {
-    miniGoals = new MiniGoals(storage);
-    await miniGoals.initializeGoals();
+    window.miniGoals = new MiniGoals(storage);
+    await miniGoals.initializeMiniGoals();
+  } else if (typeof MiniGoalsManager !== 'undefined') {
+    window.miniGoalsManager = new MiniGoalsManager(storage);
+    await miniGoalsManager.initializeMiniGoals();
   }
   
   // Initialize daily journal
   if (typeof DailyJournal !== 'undefined') {
-    dailyJournal = new DailyJournal(storage);
+    window.dailyJournal = new DailyJournal(storage);
     await dailyJournal.initializeJournal();
   }
   
   // Initialize export and backup
   if (typeof ExportBackup !== 'undefined') {
-    exportBackup = new ExportBackup(storage);
+    window.exportBackup = new ExportBackup(storage);
     await exportBackup.initializeExport();
   }
   
   // Initialize theme customization
   if (typeof ThemeCustomization !== 'undefined') {
-    themeCustomization = new ThemeCustomization(storage);
+    window.themeCustomization = new ThemeCustomization(storage);
     await themeCustomization.initializeTheme();
   }
   
-  // Bind focus mode button
-  const focusModeBtn = document.getElementById('enter-focus-mode');
-  if (focusModeBtn && typeof focusMode !== 'undefined') {
-    focusModeBtn.addEventListener('click', () => {
-      const selectedTask = document.getElementById('pomo-task-select').value;
-      focusMode.enterFocusMode(selectedTask || null);
-    });
-  }
-  
-  // Track app initialization
-  if (typeof analytics !== 'undefined') {
-    analytics.track('app_initialized');
-  }
-
   // Initialize analytics
   if (typeof Analytics !== 'undefined') {
-    const analytics = new Analytics(storage);
-    analytics.init();
+    window.analytics = new Analytics(storage);
+    await analytics.init();
+  }
+  
+  // Initialize mood tracker
+  if (typeof MoodTracker !== 'undefined') {
+    window.moodTracker = new MoodTracker(storage);
+    await moodTracker.initializeMoodTracker();
+  }
+  
+  // Initialize achievement system
+  if (typeof AchievementSystem !== 'undefined') {
+    window.achievementSystem = new AchievementSystem(storage);
+    await achievementSystem.initializeAchievements();
+  }
+  
+  // Add Focus Mode button to Pomodoro section
+  const pomoControls = document.querySelector('#today-section .controls');
+  if (pomoControls && !document.getElementById('enter-focus-mode')) {
+    const focusBtn = document.createElement('button');
+    focusBtn.id = 'enter-focus-mode';
+    focusBtn.textContent = 'Focus Mode';
+    focusBtn.className = 'secondary';
+    pomoControls.appendChild(focusBtn);
+    
+    if (typeof focusMode !== 'undefined') {
+      focusBtn.addEventListener('click', () => {
+        const selectedTask = document.getElementById('pomo-task-select').value;
+        focusMode.enterFocusMode(selectedTask || null);
+      });
+    }
   }
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// Hook into existing task completion to trigger achievements
+const originalCompleteTask = window.completeTask;
+if (typeof originalCompleteTask === 'function') {
+  window.completeTask = async function(taskId) {
+    const result = await originalCompleteTask(taskId);
+    
+    // Update achievement stats
+    if (typeof achievementSystem !== 'undefined') {
+      const userData = await achievementSystem.getUserStats();
+      userData.tasksCompleted = (userData.tasksCompleted || 0) + 1;
+      
+      // Check for early bird/night owl achievements
+      const hour = new Date().getHours();
+      if (hour < 9) userData.earlyBirdTasks = (userData.earlyBirdTasks || 0) + 1;
+      if (hour >= 22) userData.nightOwlTasks = (userData.nightOwlTasks || 0) + 1;
+      
+      await achievementSystem.updateUserStats(userData);
+    }
+    
+    return result;
+  };
+}
+
+// Hook into Pomodoro completion
+const originalLogEndFocusSession = window.logEndFocusSession;
+if (typeof originalLogEndFocusSession === 'function') {
+  window.logEndFocusSession = async function(reason) {
+    const result = await originalLogEndFocusSession(reason);
+    
+    // Update achievement stats for completed sessions
+    if (reason === 'completed' && typeof achievementSystem !== 'undefined') {
+      const userData = await achievementSystem.getUserStats();
+      userData.pomoSessionsCompleted = (userData.pomoSessionsCompleted || 0) + 1;
+      await achievementSystem.updateUserStats(userData);
+    }
+    
+    return result;
+  };
+}
+
+// Ensure all features are properly initialized
+async function ensureFeatureIntegration() {
+  // Wait for DOM to be ready
+  if (document.readyState !== 'complete') {
+    await new Promise(resolve => {
+      if (document.readyState === 'complete') resolve();
+      else window.addEventListener('load', resolve);
+    });
+  }
+  
+  // Verify all feature widgets are created
+  setTimeout(async () => {
+    if (typeof moodTracker !== 'undefined' && !document.getElementById('mood-tracker-card')) {
+      await moodTracker.initializeMoodTracker();
+    }
+    
+    if (typeof achievementSystem !== 'undefined' && !document.getElementById('achievement-card')) {
+      await achievementSystem.initializeAchievements();
+    }
+    
+    // Ensure Focus Mode button exists
+    const pomoControls = document.querySelector('#today-section .controls');
+    if (pomoControls && !document.getElementById('enter-focus-mode') && typeof focusMode !== 'undefined') {
+      const focusBtn = document.createElement('button');
+      focusBtn.id = 'enter-focus-mode';
+      focusBtn.textContent = 'Focus Mode';
+      focusBtn.className = 'secondary';
+      pomoControls.appendChild(focusBtn);
+      
+      focusBtn.addEventListener('click', () => {
+        const selectedTask = document.getElementById('pomo-task-select').value;
+        focusMode.enterFocusMode(selectedTask || null);
+      });
+    }
+  }, 1000);
+}
 
 // Toast helper
 let toastTimer;
@@ -848,4 +922,56 @@ function updatePomoSummary() {
 
 function bindEvents() {
   // Events are already bound in setupActions()
+}
+
+// Add keyboard shortcuts for power users
+document.addEventListener('keydown', (e) => {
+  // Only trigger shortcuts when not typing in inputs
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  
+  switch(e.key) {
+    case 't':
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        document.getElementById('task-input')?.focus();
+      }
+      break;
+    case 's':
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        document.getElementById('open-settings')?.click();
+      }
+      break;
+    case ' ':
+      e.preventDefault();
+      const startBtn = document.getElementById('pomo-start');
+      const pauseBtn = document.getElementById('pomo-pause');
+      if (startBtn && !startBtn.disabled) startBtn.click();
+      else if (pauseBtn && !pauseBtn.disabled) pauseBtn.click();
+      break;
+    case 'Escape':
+      const settingsDrawer = document.getElementById('settings-drawer');
+      if (settingsDrawer?.classList.contains('open')) {
+        document.getElementById('close-settings')?.click();
+      }
+      break;
+    case 'f':
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const focusBtn = document.getElementById('enter-focus-mode');
+        if (focusBtn) focusBtn.click();
+      }
+      break;
+  }
+});
+
+// Add data persistence warning
+function showDataPersistenceInfo() {
+  const hasShownWarning = localStorage.getItem('lakshya_data_warning_shown');
+  if (!hasShownWarning) {
+    setTimeout(() => {
+      showToast('💾 Your data is saved locally in your browser. Export regularly for backup!');
+      localStorage.setItem('lakshya_data_warning_shown', 'true');
+    }, 3000);
+  }
 }

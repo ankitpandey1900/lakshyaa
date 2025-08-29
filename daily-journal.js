@@ -90,8 +90,8 @@ class DailyJournal {
     this.openJournalModal(randomPrompt);
   }
 
-  openJournalModal(prompt = null) {
-    const settings = this.getJournalSettings();
+  async openJournalModal(prompt = null) {
+    const settings = await this.getJournalSettings();
     const selectedPrompt = prompt || settings.prompts[0];
     
     const modal = document.createElement('div');
@@ -139,6 +139,77 @@ class DailyJournal {
     setTimeout(() => {
       document.getElementById('journal-textarea').focus();
     }, 100);
+  }
+
+  async openJournalModalNew() {
+    const settings = await this.getJournalSettings();
+    const todayEntries = await this.getTodayEntries();
+    const randomPrompt = settings.prompts[Math.floor(Math.random() * settings.prompts.length)];
+    
+    const modal = document.createElement('div');
+    modal.className = 'journal-modal';
+    modal.innerHTML = `
+      <div class="journal-modal-content">
+        <div class="journal-header">
+          <h2>📓 Daily Journal</h2>
+          <button class="close-journal-modal">×</button>
+        </div>
+        <div class="journal-prompt">
+          <strong>Today's Reflection:</strong> ${randomPrompt}
+        </div>
+        <textarea 
+          id="journal-textarea" 
+          class="journal-textarea" 
+          placeholder="Write your thoughts here..."
+          rows="8"
+        ></textarea>
+        <div class="journal-actions">
+          <button id="save-journal-entry" class="primary">Save Entry</button>
+          <button class="close-journal-modal secondary">Cancel</button>
+        </div>
+        ${todayEntries.length > 0 ? `
+          <div class="today-entries">
+            <h3>Today's Entries</h3>
+            ${todayEntries.map(entry => `
+              <div class="journal-entry-preview">
+                <div class="entry-time">${new Date(entry.timestamp).toLocaleTimeString()}</div>
+                <div class="entry-content">${entry.content.substring(0, 100)}${entry.content.length > 100 ? '...' : ''}</div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    
+    // Focus on textarea
+    const textarea = modal.querySelector('#journal-textarea');
+    setTimeout(() => textarea.focus(), 100);
+    
+    // Bind events
+    modal.querySelector('#save-journal-entry').addEventListener('click', async () => {
+      const content = textarea.value.trim();
+      if (content) {
+        const today = new Date().toDateString();
+        await this.saveJournalEntry(today, content, randomPrompt);
+        document.body.removeChild(modal);
+        await this.renderJournalEntries();
+        this.showToast('Journal entry saved! 📝', 'success');
+      }
+    });
+    
+    modal.querySelectorAll('.close-journal-modal').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.body.removeChild(modal);
+      });
+    });
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        document.body.removeChild(modal);
+      }
+    });
   }
 
   bindJournalModalEvents() {
@@ -210,7 +281,7 @@ class DailyJournal {
       container.innerHTML = `
         <div class="journal-empty">
           <p>No journal entries yet.</p>
-          <button onclick="dailyJournal.openJournalModal()" class="journal-btn primary">
+          <button onclick="dailyJournal.openJournalModalNew()" class="journal-btn primary">
             Start Writing
           </button>
         </div>
@@ -257,7 +328,7 @@ class DailyJournal {
         <button onclick="dailyJournal.exportJournal()" class="journal-btn secondary">
           📁 Export Journal
         </button>
-        <button onclick="dailyJournal.openJournalModal()" class="journal-btn primary">
+        <button onclick="dailyJournal.openJournalModalNew()" class="journal-btn primary">
           ✍️ New Entry
         </button>
       </div>
@@ -337,6 +408,12 @@ class DailyJournal {
   async initializeJournal() {
     await this.renderJournalEntries();
     await this.scheduleEveningReminder();
+  }
+
+  async getTodayEntries() {
+    const entries = await this.getJournalEntries();
+    const today = new Date().toDateString();
+    return entries[today] || [];
   }
 }
 

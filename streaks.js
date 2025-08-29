@@ -127,6 +127,47 @@ class StreakManager {
 
   async initializeStreaks() {
     await this.updateStreakDisplay();
+    await this.showDailyQuote();
+    this.bindStreakEvents();
+  }
+
+  async showDailyQuote() {
+    const quotes = [
+      "कर्मण्येवाधिकारस्ते मा फलेषु कदाचन। - You have the right to perform your actions, but not to the fruits of action.",
+      "योगः कर्मसु कौशलम्। - Yoga is skill in action.",
+      "श्रेयान्स्वधर्मो विगुणः परधर्मात्स्वनुष्ठितात्। - Better is one's own dharma, though imperfectly performed.",
+      "अभ्यासेन तु कौन्तेय वैराग्येण च गृह्यते। - Through practice and detachment, it can be attained.",
+      "उद्यमेन हि सिध्यन्ति कार्याणि न मनोरथैः। - Success comes through effort, not mere wishes.",
+      "धैर्यं यस्य पिता क्षमा यस्य माता। - Patience is the father, forgiveness is the mother.",
+      "विद्या ददाति विनयं विनयाद्याति पात्रताम्। - Knowledge gives humility, from humility comes worthiness.",
+      "सत्यमेव जयते नानृतम्। - Truth alone triumphs, not falsehood."
+    ];
+
+    const today = new Date().toDateString();
+    const quoteIndex = Math.abs(today.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % quotes.length;
+    const todayQuote = quotes[quoteIndex];
+
+    // Show quote in streak section
+    const streakEl = document.getElementById('streak');
+    if (streakEl) {
+      const quoteEl = streakEl.querySelector('.daily-quote') || document.createElement('div');
+      quoteEl.className = 'daily-quote';
+      quoteEl.innerHTML = `<div class="sanskrit-quote">${todayQuote}</div>`;
+      
+      if (!streakEl.querySelector('.daily-quote')) {
+        streakEl.appendChild(quoteEl);
+      }
+    }
+
+    // Also show in welcome section occasionally
+    const welcomeQuote = document.getElementById('welcome-quote');
+    if (welcomeQuote && Math.random() < 0.3) {
+      welcomeQuote.textContent = todayQuote.split(' - ')[1] || todayQuote;
+    }
+  }
+
+  bindStreakEvents() {
+    // Add event listeners for streak events
   }
 }
 
