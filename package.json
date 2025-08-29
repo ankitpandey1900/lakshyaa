@@ -1,0 +1,29 @@
+{
+  "name": "lakshya-productivity-app",
+  "version": "1.0.0",
+  "description": "Visualize deadline countdown, daily progress, weekly history, and pending backlog—all in one view.",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'Static build - no build step needed'",
+    "deploy": "vercel --prod",
+    "test": "echo 'No tests specified'",
+    "lighthouse": "lighthouse https://lakshyaa-nine.vercel.app --output html --output-path ./lighthouse-report.html",
+    "start": "vercel dev"
+  },
+  "keywords": [
+    "productivity",
+    "task-management",
+    "pomodoro",
+    "deadline-tracker",
+    "chrome-extension"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "lighthouse": "^10.4.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

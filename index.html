@@ -4,12 +4,36 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lakshya — Deadline & Daily Tasks</title>
+  <meta name="description" content="Track deadlines, manage daily tasks, and boost productivity with Pomodoro timer. Visualize progress with countdown, history, and focus sessions." />
+  <meta name="keywords" content="productivity, task management, pomodoro timer, deadline tracker, daily planner" />
+  <meta name="author" content="Lakshya" />
+  
+  <!-- Open Graph / Social Media -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Lakshya — Deadline & Daily Tasks" />
+  <meta property="og:description" content="Track deadlines, manage daily tasks, and boost productivity with Pomodoro timer." />
+  <meta property="og:image" content="logo.png" />
+  
+  <!-- Performance optimizations -->
+  <link rel="preload" href="styles.css" as="style" />
+  <link rel="preload" href="popup.js" as="script" />
+  <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+  
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="logo.png" type="image/png" />
   <meta name="theme-color" content="#0b1220" />
   <script defer src="popup.js"></script>
+  <script defer src="streaks.js"></script>
+  <script defer src="smart-suggestions.js"></script>
+  <script defer src="focus-mode.js"></script>
+  <script defer src="analytics.js"></script>
+  <script defer src="mini-goals.js"></script>
+  <script defer src="daily-journal.js"></script>
+  <script defer src="export-backup.js"></script>
+  <script defer src="theme-customization.js"></script>
 </head>
 <body class="big">
+  <div id="analytics-container"></div>
   <div class="quickbar">
     <div class="inner">
       <img src="logo.png" alt="Lakshya" class="logo" />
@@ -58,6 +82,17 @@
             <div class="segment"><div class="num" id="cd-secs">0</div><div class="label">Secs</div></div>
           </div>
           <div id="countdown-human" class="muted small text-center" style="margin-top:8px;">Not set</div>
+          
+          <!-- Mini Goals Section -->
+          <div class="mini-goals-section" style="margin-top:20px;">
+            <h3>Mini Goals</h3>
+            <div class="row" style="margin-bottom:8px;">
+              <input class="input" type="text" id="mini-goal-input" placeholder="Add a milestone..."/>
+              <input class="input" type="date" id="mini-goal-date" style="max-width:140px;"/>
+              <button id="add-mini-goal" class="primary">Add</button>
+            </div>
+            <div id="mini-goals-list"></div>
+          </div>
         </div>
         <div class="section card" id="today-section">
           <div class="row" style="justify-content: space-between; align-items: center;">
@@ -109,9 +144,20 @@
           </div>
         </div>
         <!-- New right column widgets -->
-        <div class="section card" id="quick-stats-card">
-          <h2>Quick Stats</h2>
-          <ul id="quick-stats" class="stats"></ul>
+        <div class="section card" id="smart-suggestions-card">
+          <div id="smart-suggestions"></div>
+        </div>
+        <div class="section card" id="journal-card">
+          <h2>📓 Daily Journal</h2>
+          <div id="journal-entries"></div>
+          <button onclick="dailyJournal.openJournalModal()" class="primary" style="margin-top:10px;">✍️ Write Entry</button>
+        </div>
+        <div class="section card" id="export-card">
+          <div id="export-options"></div>
+        </div>
+        <div class="section card" id="theme-card">
+          <div id="theme-selector"></div>
+          <div id="custom-affirmations" style="margin-top:15px;"></div>
         </div>
         <div class="section card" id="streak-card">
           <h2>Focus Streak</h2>
@@ -120,6 +166,10 @@
         <div class="section card" id="nextup-card">
           <h2>Next Up</h2>
           <ul id="nextup-list"></ul>
+        </div>
+        <div class="section card" id="mini-goals-card">
+          <h2>Mini Goals</h2>
+          <ul id="mini-goals-list"></ul>
         </div>
       </div>
     </div>
