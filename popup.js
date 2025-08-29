@@ -49,9 +49,10 @@ function daysUntil(dateIso) {
   if (!dateIso) return '—';
   const start = new Date(new Date().toDateString());
   const end = parseIsoLocal(dateIso) || new Date(dateIso);
-  const diffMs = end - start;
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  return diffDays >= 0 ? diffDays : 0;
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const rawDays = Math.ceil((end - start) / msPerDay); // can be negative when overdue
+  // Update status text and emphasis classes
+  return rawDays >= 0 ? rawDays : 0;
 }
 
 function getLastNDates(n) {
@@ -706,104 +707,78 @@ async function init() {
   if (oldNote) oldNote.style.display = 'none';
   
   // Initialize new features
-  let streakManager, smartSuggestions;
+  let streakManager, smartSuggestions, miniGoals, dailyJournal, exportBackup, themeCustomization;
 
-  document.addEventListener('DOMContentLoaded', async () => {
-    // Initialize existing features
-    await loadUserData();
-    await loadDeadline();
-    await loadTasks();
-    await loadPomoSettings();
-    updateCountdown();
-    updateTodayDate();
-    updatePomoTaskSelect();
-    loadPomoSessions();
-    updatePomoSummary();
-    bindEvents();
-    
-    // Initialize new features
-    if (typeof StreakManager !== 'undefined') {
-      streakManager = new StreakManager(storage);
-      await streakManager.initializeStreaks();
-    }
-    
-    if (typeof SmartSuggestions !== 'undefined') {
-      smartSuggestions = new SmartSuggestions(storage);
-      await smartSuggestions.initializeSuggestions();
-    }
-    
-    // Initialize focus mode
-    if (typeof focusMode !== 'undefined') {
-      focusMode.init();
-    }
-    
-    // Initialize mini goals
-    if (typeof MiniGoals !== 'undefined') {
-      miniGoals = new MiniGoals(storage);
-      await miniGoals.initializeGoals();
-    }
-    
-    // Initialize daily journal
-    if (typeof DailyJournal !== 'undefined') {
-      dailyJournal = new DailyJournal(storage);
-      await dailyJournal.initializeJournal();
-    }
-    
-    // Initialize export and backup
-    if (typeof ExportBackup !== 'undefined') {
-      exportBackup = new ExportBackup(storage);
-      await exportBackup.initializeExport();
-    }
-    
-    // Initialize theme customization
-    if (typeof ThemeCustomization !== 'undefined') {
-      themeCustomization = new ThemeCustomization(storage);
-      await themeCustomization.initializeTheme();
-    }
-    
-    // Bind focus mode button
-    const focusModeBtn = document.getElementById('enter-focus-mode');
-    if (focusModeBtn && typeof focusMode !== 'undefined') {
-      focusModeBtn.addEventListener('click', () => {
-        const selectedTask = document.getElementById('pomo-task-select').value;
-        focusMode.enterFocusMode(selectedTask || null);
-      });
-    }
-    
-    // Track app initialization
-    if (typeof analytics !== 'undefined') {
-      analytics.track('app_initialized');
-    }
-  });
+  // Initialize existing features
+  await loadUserData();
+  await loadDeadline();
+  await loadTasks();
+  await loadPomoSettings();
+  updateCountdown();
+  updateTodayDate();
+  updatePomoTaskSelect();
+  loadPomoSessions();
+  updatePomoSummary();
+  bindEvents();
+  
+  // Initialize new features
+  if (typeof StreakManager !== 'undefined') {
+    streakManager = new StreakManager(storage);
+    await streakManager.initializeStreaks();
+  }
+  
+  if (typeof SmartSuggestions !== 'undefined') {
+    smartSuggestions = new SmartSuggestions(storage);
+    await smartSuggestions.initializeSuggestions();
+  }
+  
+  // Initialize focus mode
+  if (typeof focusMode !== 'undefined') {
+    focusMode.init();
+  }
+  
+  // Initialize mini goals
+  if (typeof MiniGoals !== 'undefined') {
+    miniGoals = new MiniGoals(storage);
+    await miniGoals.initializeGoals();
+  }
+  
+  // Initialize daily journal
+  if (typeof DailyJournal !== 'undefined') {
+    dailyJournal = new DailyJournal(storage);
+    await dailyJournal.initializeJournal();
+  }
+  
+  // Initialize export and backup
+  if (typeof ExportBackup !== 'undefined') {
+    exportBackup = new ExportBackup(storage);
+    await exportBackup.initializeExport();
+  }
+  
+  // Initialize theme customization
+  if (typeof ThemeCustomization !== 'undefined') {
+    themeCustomization = new ThemeCustomization(storage);
+    await themeCustomization.initializeTheme();
+  }
+  
+  // Bind focus mode button
+  const focusModeBtn = document.getElementById('enter-focus-mode');
+  if (focusModeBtn && typeof focusMode !== 'undefined') {
+    focusModeBtn.addEventListener('click', () => {
+      const selectedTask = document.getElementById('pomo-task-select').value;
+      focusMode.enterFocusMode(selectedTask || null);
+    });
+  }
+  
+  // Track app initialization
+  if (typeof analytics !== 'undefined') {
+    analytics.track('app_initialized');
+  }
 
-  // Update task completion to trigger streak updates
-  async function toggleTask(taskId, dateIso) {
-    const tasks = await storage.get(KEY_TASKS_BY_DATE, {});
-    if (!tasks[dateIso]) return;
-    
-    const task = tasks[dateIso].find(t => t.id === taskId);
-    if (!task) return;
-    
-    task.done = !task.done;
-    await storage.set(KEY_TASKS_BY_DATE, tasks);
-    
-    // Update streak when task is completed
-    if (task.done && streakManager && dateIso === todayIso()) {
-      await streakManager.updateTaskStreak();
-    }
-    
-    // Track task completion
-    if (typeof analytics !== 'undefined') {
-      analytics.track('task_toggled', { completed: task.done });
-    }
-    
-    renderTasks();
-    updateProgress();
-    
-    // Refresh suggestions after task changes
-    if (smartSuggestions) {
-      await smartSuggestions.displaySuggestions();
-    }
+  // Initialize analytics
+  if (typeof Analytics !== 'undefined') {
+    const analytics = new Analytics(storage);
+    analytics.init();
   }
 }
 
@@ -820,7 +795,6 @@ function showToast(message) {
   toastTimer = setTimeout(()=> el.classList.remove('show'), 1200);
 }
 
-
 // Finalize in-flight focus session if page is hidden/closed
 function finalizeInFlightSession() {
   try {
@@ -835,185 +809,43 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('beforeunload', finalizeInFlightSession);
 
-// Initialize all new features
-function initializeNewFeatures() {
-  // Initialize streaks and motivation
-  if (typeof streakTracker !== 'undefined') {
-    streakTracker.init();
-  }
-  
-  // Initialize smart suggestions
-  if (typeof smartSuggestions !== 'undefined') {
-    smartSuggestions.init();
-  }
-  
-  // Initialize focus mode
-  if (typeof focusMode !== 'undefined') {
-    focusMode.init();
-  }
-  
-  // Initialize mini goals
-  if (typeof miniGoals !== 'undefined') {
-    miniGoals.init();
-  }
-  
-  // Initialize daily journal
-  if (typeof dailyJournal !== 'undefined') {
-    dailyJournal.init();
-  }
-  
-  // Initialize export and backup
-  if (typeof exportBackup !== 'undefined') {
-    exportBackup.init();
-  }
-  
-  // Initialize theme customization
-  if (typeof themeCustomization !== 'undefined') {
-    themeCustomization.init();
+// Missing function implementations
+async function loadUserData() {
+  const name = await storage.get(KEY_USERNAME, '');
+  if (name) {
+    const welcomeText = document.getElementById('welcome-text');
+    if (welcomeText) welcomeText.textContent = `Welcome ${name}. Let's Achieve More!`;
   }
 }
 
-// Enhanced task toggle function to update streaks and suggestions
-function toggleTask(index) {
-  const tasks = getTasks();
-  if (index >= 0 && index < tasks.length) {
-    tasks[index].done = !tasks[index].done;
-    tasks[index].doneAt = tasks[index].done ? new Date().toISOString() : null;
-    
-    // Save tasks
-    saveTasks(tasks);
-    
-    // Update UI
-    renderTasks();
-    updateProgress();
-    
-    // Update streaks if task completed
-    if (tasks[index].done && typeof streakTracker !== 'undefined') {
-      streakTracker.updateDailyTaskStreak();
-    }
-    
-    // Refresh smart suggestions
-    if (typeof smartSuggestions !== 'undefined') {
-      smartSuggestions.refreshSuggestions();
-    }
-    
-    // Update mini goals progress if applicable
-    if (typeof miniGoals !== 'undefined') {
-      miniGoals.updateProgress();
-    }
-  }
+async function loadDeadline() {
+  await renderDeadline();
 }
 
-// Enhanced Pomodoro completion to update streaks
-function completePomodoro() {
-  const currentSession = getCurrentPomodoroSession();
-  if (currentSession) {
-    // Mark session as completed
-    currentSession.completed = true;
-    currentSession.endTime = new Date().toISOString();
-    
-    // Save session
-    savePomodoroSession(currentSession);
-    
-    // Update streaks
-    if (typeof streakTracker !== 'undefined') {
-      streakTracker.updatePomodoroStreak();
-    }
-    
-    // Show completion notification
-    showToast('🍅 Pomodoro completed! Great focus!', 'success');
-    
-    // Reset timer
-    resetPomodoro();
-  }
+async function loadTasks() {
+  await renderToday();
 }
 
-// Add event listeners for new features
-function bindNewFeatureEvents() {
-  // Focus mode button
-  const focusBtn = document.getElementById('focus-mode-btn');
-  if (focusBtn && typeof focusMode !== 'undefined') {
-    focusBtn.addEventListener('click', () => focusMode.enter());
-  }
-  
-  // Mini goals input
-  const miniGoalInput = document.getElementById('mini-goal-input');
-  const addMiniGoalBtn = document.getElementById('add-mini-goal-btn');
-  
-  if (miniGoalInput && addMiniGoalBtn && typeof miniGoals !== 'undefined') {
-    addMiniGoalBtn.addEventListener('click', () => {
-      const text = miniGoalInput.value.trim();
-      if (text) {
-        miniGoals.addGoal(text);
-        miniGoalInput.value = '';
-      }
-    });
-    
-    miniGoalInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        const text = miniGoalInput.value.trim();
-        if (text) {
-          miniGoals.addGoal(text);
-          miniGoalInput.value = '';
-        }
-      }
-    });
-  }
-  
-  // Journal button is handled in daily-journal.js via onclick
-  
-  // Export buttons are handled in export-backup.js
-  
-  // Theme selector is handled in theme-customization.js
-  
-  // Smart suggestions are handled in smart-suggestions.js
+async function loadPomoSettings() {
+  await loadPomodoro();
 }
 
-// Enhanced initialization
-document.addEventListener('DOMContentLoaded', function() {
-  // Original initialization
-  loadTasks();
-  loadDeadline();
-  loadSettings();
-  loadHistory();
-  loadBacklog();
-  updateProgress();
-  
-  // Initialize new features
-  initializeNewFeatures();
-  
-  // Bind new feature events
-  bindNewFeatureEvents();
-  
-  // Set up periodic updates
-  setInterval(() => {
-    updateCountdown();
-    updateProgress();
-    
-    // Update streaks display
-    if (typeof streakTracker !== 'undefined') {
-      streakTracker.updateDisplay();
-    }
-    
-    // Refresh suggestions periodically
-    if (typeof smartSuggestions !== 'undefined') {
-      smartSuggestions.refreshSuggestions();
-    }
-  }, 1000);
-  
-  // Check for backup reminders
-  if (typeof exportBackup !== 'undefined') {
-    setTimeout(() => exportBackup.checkBackupReminder(), 2000);
-  }
-  
-  // Show daily affirmation
-  if (typeof themeCustomization !== 'undefined') {
-    setTimeout(() => themeCustomization.showDailyAffirmation(), 1500);
-  }
-});
+function updateTodayDate() {
+  updateDateElements();
+}
 
-// Initialize analytics
-if (typeof Analytics !== 'undefined') {
-  analytics = new Analytics(storage);
-  analytics.init();
+function updatePomoTaskSelect() {
+  populatePomoTaskSelect();
+}
+
+function loadPomoSessions() {
+  renderPomoLog();
+}
+
+function updatePomoSummary() {
+  renderPomoLog();
+}
+
+function bindEvents() {
+  // Events are already bound in setupActions()
 }
